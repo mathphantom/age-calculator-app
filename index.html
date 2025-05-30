@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة العمر الذكية - تصميم جديد</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        .rtl-input {
+            text-align: right;
+        }
+        .rtl-label {
+            text-align: right;
+            display: block; /* Ensures label takes full width if needed */
+        }
+        .error-message {
+            color: #F87171; /* red-400 for a slightly softer red */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
+        }
+        .success-message {
+            color: #34D399; /* emerald-400 */
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* semibold */
+            margin-top: 1rem; /* mt-4 */
+            padding: 0.5rem;
+            border-radius: 0.375rem; /* rounded-md */
+            background-color: rgba(52, 211, 153, 0.1); /* Light emerald background */
+        }
+        .date-input::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .date-input::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+        .gemini-result {
+            margin-top: 1.5rem; /* mt-6 */
+            padding: 1rem; /* p-4 */
+            border-radius: 0.5rem; /* rounded-lg */
+            background: linear-gradient(135deg, #f3e8ff, #e0e7ff); /* Light purple to light indigo gradient */
+            color: #374151; /* text-gray-700 */
+            font-size: 1rem; /* text-base */
+            line-height: 1.7;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            white-space: pre-wrap; 
+        }
+        .loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1rem; /* mt-4 */
+            color: #4F46E5; /* indigo-600 */
+        }
+        .loading-indicator svg {
+            animation: spin 1s linear infinite;
+            margin-left: 0.75rem; /* ml-3 */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Animation for card entry */
+        @keyframes fadeInScaleUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-fadeInScaleUp {
+            animation: fadeInScaleUp 0.6s ease-out forwards;
+        }
+
+        /* Custom scrollbar for better aesthetics (optional) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c7d2fe; /* indigo-200 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a5b4fc; /* indigo-300 */
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-sky-100 to-indigo-100 min-h-screen flex items-center justify-center p-4 selection:bg-purple-500 selection:text-white">
+    <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-xl w-full max-w-xl animate-fadeInScaleUp">
+        <div class="text-center mb-8 sm:mb-12">
+            <h1 class="text-3xl sm:text-5xl font-bold">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">
+                    حاسبة العمر الذكية
+                </span>
+            </h1>
+            <p class="text-sm text-gray-500 mt-2">by : Amr Moussa</p>
+        </div>
+
+        <div class="mb-6 sm:mb-8">
+            <label for="birthdate" class="rtl-label text-lg font-semibold text-gray-700 mb-2">أدخل تاريخ ميلادك:</label>
+            <input type="date" id="birthdate" name="birthdate"
+                   class="date-input rtl-input w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition-all duration-300 ease-in-out hover:border-indigo-300"
+                   required>
+            <div id="dateError" class="error-message hidden"></div>
+            <p class="text-xs text-gray-500 mt-1.5 text-right">ملاحظة: قد يختلف تنسيق عرض التاريخ في هذا الحقل حسب متصفحك.</p>
+        </div>
+
+        <button id="calculateBtn"
+                class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg py-3.5 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+            احسب العمر
+        </button>
+
+        <div id="result" class="success-message text-center mt-6 sm:mt-8 min-h-[3rem]">
+            </div>
+
+        <div id="geminiFeaturesContainer" class="mt-8 pt-8 border-t-2 border-gray-100 hidden">
+            <h2 class="text-2xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-500 mb-6 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mr-2 inline-block text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                اكتشف المزيد مع Gemini
+            </h2>
+            <div class="space-y-4 sm:space-y-0 sm:flex sm:space-x-4 sm:space-x-reverse">
+                <button id="funFactBtn" class="w-full sm:w-auto flex-1 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white font-semibold py-3 px-5 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400">
+                    <span class="mr-2">✨</span>حقيقة عن سنة ميلادك
+                </button>
+                <button id="personalizedMessageBtn" class="w-full sm:w-auto flex-1 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold py-3 px-5 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-400">
+                    <span class="mr-2">💌</span>رسالة ملهمة لك
+                </button>
+            </div>
+            <div id="loadingIndicator" class="loading-indicator hidden mt-6">
+                <svg class="w-6 h-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-lg">جاري التحميل...</span>
+            </div>
+            <div id="geminiResultDiv" class="gemini-result hidden min-h-[5rem]">
+                </div>
+        </div>
+
+
+        <div id="customModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center hidden p-4 z-50">
+            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-out scale-95 opacity-0" 
+                 id="modalContent">
+                <h3 id="modalTitle" class="text-2xl font-bold mb-4 text-center text-gray-800"></h3>
+                <p id="modalMessage" class="text-gray-700 mb-6 text-center text-base sm:text-lg"></p>
+                <button id="modalCloseBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    حسنًا
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const birthdateInput = document.getElementById('birthdate');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultDiv = document.getElementById('result');
+        const dateErrorDiv = document.getElementById('dateError');
+
+        const geminiFeaturesContainer = document.getElementById('geminiFeaturesContainer');
+        const funFactBtn = document.getElementById('funFactBtn');
+        const personalizedMessageBtn = document.getElementById('personalizedMessageBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const geminiResultDiv = document.getElementById('geminiResultDiv');
+
+        const customModal = document.getElementById('customModal');
+        const modalContent = document.getElementById('modalContent');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+        let calculatedAgeDetails = null;
+
+        // --- Modal Functions ---
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            customModal.classList.remove('hidden');
+            // Trigger animation for modal
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10); 
+        }
+        function hideModal() {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                 customModal.classList.add('hidden');
+            }, 300); // Match duration of animation
+        }
+        modalCloseBtn.addEventListener('click', hideModal);
+        customModal.addEventListener('click', function(event) {
+            if (event.target === customModal) { // Click outside modal content
+                hideModal();
+            }
+        });
+
+        const today = new Date().toISOString().split('T')[0];
+        birthdateInput.setAttribute('max', today);
+
+        // --- Age Calculation Logic ---
+        calculateBtn.addEventListener('click', () => {
+            const birthdateString = birthdateInput.value; 
+            dateErrorDiv.classList.add('hidden');
+            resultDiv.textContent = '';
+            resultDiv.classList.remove('success-message'); // Clear previous styling
+            geminiFeaturesContainer.classList.add('hidden'); 
+            geminiResultDiv.classList.add('hidden');
+            geminiResultDiv.textContent = '';
+            calculatedAgeDetails = null; 
+
+            if (!birthdateString) {
+                dateErrorDiv.textContent = 'الرجاء إدخال تاريخ ميلادك.';
+                dateErrorDiv.classList.remove('hidden');
+                showModal('خطأ في الإدخال', 'الرجاء إدخال تاريخ ميلادك.');
+                return;
+            }
+
+            const birthDate = new Date(birthdateString); 
+            const currentDate = new Date();
+
+            if (birthDate > currentDate) {
+                dateErrorDiv.textContent = 'تاريخ الميلاد لا يمكن أن يكون في المستقبل.';
+                dateErrorDiv.classList.remove('hidden');
+                showModal('خطأ في الإدخال', 'تاريخ الميلاد لا يمكن أن يكون في المستقبل.');
+                return;
+            }
+
+            let years = currentDate.getFullYear() - birthDate.getFullYear();
+            let months = currentDate.getMonth() - birthDate.getMonth();
+            let days = currentDate.getDate() - birthDate.getDate();
+
+            if (days < 0) {
+                months--;
+                const lastDayOfPrevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0).getDate();
+                days += lastDayOfPrevMonth;
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            
+            calculatedAgeDetails = { years, months, days, birthDate };
+
+            let ageStringParts = [];
+            if (years > 0) {
+                if (years === 1) ageStringParts.push("سنة");
+                else if (years === 2) ageStringParts.push("سنتان");
+                else if (years >= 3 && years <= 10) ageStringParts.push(`${years} سنوات`);
+                else ageStringParts.push(`${years} سنة`);
+            }
+            if (months > 0) {
+                if (months === 1) ageStringParts.push("شهر");
+                else if (months === 2) ageStringParts.push("شهران");
+                else if (months >= 3 && months <= 10) ageStringParts.push(`${months} أشهر`);
+                else ageStringParts.push(`${months} شهر`);
+            }
+            if (days > 0) {
+                if (days === 1) ageStringParts.push("يوم");
+                else if (days === 2) ageStringParts.push("يومان");
+                else if (days >= 3 && days <= 10) ageStringParts.push(`${days} أيام`);
+                else ageStringParts.push(`${days} يوم`);
+            }
+            
+            let finalResultText;
+            const todayForCheck = new Date();
+            todayForCheck.setHours(0,0,0,0); 
+            const birthDateNormalized = new Date(birthDate);
+            birthDateNormalized.setHours(0,0,0,0); 
+
+            if (years === 0 && months === 0 && days === 0 && birthDateNormalized.getTime() === todayForCheck.getTime() ) {
+                finalResultText = "🎉 عيد ميلاد سعيد! لقد ولدت اليوم! 🎉";
+            } else if (ageStringParts.length > 0) {
+                finalResultText = "عمرك هو: " + ageStringParts.join(" و ");
+            } else if (years === 0 && months === 0 && days === 0) { 
+                finalResultText = "عمرك أقل من يوم واحد أو تاريخ ميلادك هو اليوم.";
+            } else {
+                finalResultText = "الرجاء إدخال تاريخ ميلاد صحيح.";
+            }
+            resultDiv.textContent = finalResultText;
+            resultDiv.classList.add('success-message'); // Apply styling for success
+
+            if (calculatedAgeDetails && (years >=0 || months >=0 || days >=0) ) { 
+                 geminiFeaturesContainer.classList.remove('hidden');
+            } else {
+                 geminiFeaturesContainer.classList.add('hidden');
+            }
+        });
+
+        // --- Gemini API Integration ---
+        const apiKey = ""; 
+
+        async function callGeminiAPI(prompt) {
+            loadingIndicator.classList.remove('hidden');
+            geminiResultDiv.classList.add('hidden');
+            geminiResultDiv.textContent = '';
+            funFactBtn.disabled = true;
+            personalizedMessageBtn.disabled = true;
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }]
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Gemini API Error:', errorData);
+                    throw new Error(`خطأ في واجهة برمجة التطبيقات: ${errorData.error?.message || response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    geminiResultDiv.textContent = text.trim();
+                } else {
+                    console.error('Unexpected Gemini API response structure:', result);
+                    geminiResultDiv.textContent = 'لم يتم العثور على محتوى في الاستجابة.';
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                geminiResultDiv.textContent = `حدث خطأ: ${error.message}. الرجاء المحاولة مرة أخرى.`;
+                showModal('خطأ في الاتصال', `حدث خطأ أثناء جلب البيانات من Gemini: ${error.message}. الرجاء التأكد من اتصالك بالإنترنت والمحاولة مرة أخرى.`);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                geminiResultDiv.classList.remove('hidden');
+                funFactBtn.disabled = false;
+                personalizedMessageBtn.disabled = false;
+            }
+        }
+
+        funFactBtn.addEventListener('click', () => {
+            if (!calculatedAgeDetails) {
+                showModal('خطأ', 'الرجاء حساب العمر أولاً.');
+                return;
+            }
+            const { years, birthDate } = calculatedAgeDetails;
+            const birthYear = birthDate.getFullYear();
+            const prompt = `أنا أستخدم تطبيق حاسبة العمر. المستخدم ولد في سنة ${birthYear} وعمره الحالي حوالي ${years} سنة.
+            هل يمكنك أن تقدم لي حقيقة تاريخية واحدة مثيرة للاهتمام أو حدثًا علميًا أو اكتشافًا ممتعًا وقع في سنة ميلاده (${birthYear})؟ 
+            أو بدلاً من ذلك، حقيقة ممتعة بشكل عام أو معلومة شيقة تتعلق بشخص في هذا العمر (${years} سنة). 
+            اجعل الإجابة جملة أو جملتين، باللغة العربية الفصحى، ومناسبة للجميع، وبتنسيق جذاب إن أمكن (مثلاً استخدام نقاط أو بداية مشوقة).`;
+            callGeminiAPI(prompt);
+        });
+
+        personalizedMessageBtn.addEventListener('click', () => {
+            if (!calculatedAgeDetails) {
+                showModal('خطأ', 'الرجاء حساب العمر أولاً.');
+                return;
+            }
+            const { years, birthDate } = calculatedAgeDetails; 
+            const day = String(birthDate.getDate()).padStart(2, '0');
+            const month = String(birthDate.getMonth() + 1).padStart(2, '0'); 
+            const year = birthDate.getFullYear();
+            const formattedBirthDateForPrompt = `${day}/${month}/${year}`;
+
+            const prompt = `أنا أستخدم تطبيق حاسبة العمر. المستخدم ولد في ${formattedBirthDateForPrompt} وعمره الحالي ${years} سنة.
+            هل يمكنك كتابة رسالة إيجابية وملهمة وقصيرة (جملتين أو ثلاث كحد أقصى) لهذا الشخص باللغة العربية الفصحى؟ 
+            اجعلها تبدو كرسالة حظ ودودة أو نصيحة صغيرة، ولكن تجنب ذكر الأبراج أو التنجيم أو أي توقعات مستقبلية. 
+            ركز على التفاؤل أو فكرة لطيفة ليومه أو تشجيع بسيط. اجعل الرسالة تبدأ بتحية مثل "يا صاحب العمر المديد" أو شيء مشابه وملهم.`;
+            callGeminiAPI(prompt);
+        });
+
+    </script>
+</body>
+</html>
